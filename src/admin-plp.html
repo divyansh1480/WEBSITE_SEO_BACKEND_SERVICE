@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLP SEO Content Manager</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f6f9;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; font-weight: 600; }
+    header span { font-size: 13px; opacity: 0.6; }
+
+    .sync-btn {
+      padding: 8px 16px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .sync-btn:hover { background: #4338ca; }
+
+    .container { max-width: 1300px; margin: 28px auto; padding: 0 24px; }
+
+    /* Category selector */
+    .selector-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    .selector-card h2 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+    .dropdowns {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .dropdown-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
+    .dropdown-group label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+    .dropdown-group select {
+      padding: 10px 12px;
+      border: 1.5px solid #dde1e9;
+      border-radius: 7px;
+      font-size: 14px;
+      background: #fff;
+      color: #1a1a2e;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .dropdown-group select:focus { border-color: #4f46e5; }
+    .dropdown-group select:disabled { background: #f8f8fb; color: #bbb; cursor: not-allowed; }
+
+    .selected-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #f0f0fd;
+      border-radius: 7px;
+      font-size: 13px;
+    }
+    .selected-info .slug-pill {
+      font-family: monospace;
+      background: #e0e0fa;
+      color: #4f46e5;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .selected-info .level-pill {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .level-L0 { background: #fef3c7; color: #d97706; }
+    .level-L1 { background: #dbeafe; color: #1d4ed8; }
+    .level-L2 { background: #dcfce7; color: #16a34a; }
+
+    .status-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge-new { background: #fef9c3; color: #ca8a04; }
+    .badge-exists { background: #dcfce7; color: #16a34a; }
+
+    /* Editor */
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 13px 20px;
+      border-bottom: 1px solid #f0f0f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-header h2 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+    .panel-header span { font-size: 12px; color: #aaa; }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 420px;
+      padding: 20px;
+      border: none;
+      resize: none;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      outline: none;
+      color: #1a1a2e;
+      background: #fafafa;
+    }
+    textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .preview-body {
+      flex: 1;
+      padding: 20px 24px;
+      min-height: 420px;
+      overflow-y: auto;
+      line-height: 1.75;
+      font-size: 15px;
+      color: #2d2d2d;
+    }
+    .preview-body h1, .preview-body h2, .preview-body h3 { margin: 16px 0 8px; color: #1a1a2e; }
+    .preview-body h1 { font-size: 22px; }
+    .preview-body h2 { font-size: 18px; }
+    .preview-body h3 { font-size: 16px; }
+    .preview-body p { margin-bottom: 12px; }
+    .preview-body ul, .preview-body ol { padding-left: 24px; margin-bottom: 12px; }
+    .preview-body li { margin-bottom: 4px; }
+    .preview-body a { color: #4f46e5; text-decoration: underline; }
+    .preview-body a:hover { color: #4338ca; }
+    .preview-body strong { font-weight: 700; }
+    .preview-body em { font-style: italic; }
+    .preview-body blockquote { border-left: 3px solid #4f46e5; padding-left: 16px; color: #666; margin: 12px 0; }
+    .preview-body hr { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+    .preview-placeholder { color: #bbb; font-style: italic; text-align: center; margin-top: 60px; }
+
+    .action-bar {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+    .action-bar .left { display: flex; gap: 10px; }
+
+    .btn {
+      padding: 9px 20px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #4338ca; }
+    .btn-delete { background: #fee2e2; color: #dc2626; }
+    .btn-delete:hover:not(:disabled) { background: #fecaca; }
+
+    /* Blocks list */
+    .blocks-list {
+      margin-top: 24px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .blocks-list-header {
+      padding: 13px 20px;
+      border-bottom: 1px solid #f0f0f5;
+      font-size: 13px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .blocks-list-header span { font-size: 12px; color: #aaa; font-weight: 400; text-transform: none; }
+    .block-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 20px;
+      border-bottom: 1px solid #f7f7fa;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .block-item:last-child { border-bottom: none; }
+    .block-item:hover { background: #f4f6f9; }
+    .block-item .left { display: flex; align-items: center; gap: 10px; }
+    .block-item .cat-name { font-size: 14px; font-weight: 500; }
+    .block-item .cat-slug { font-size: 12px; color: #aaa; font-family: monospace; }
+    .block-item .date { font-size: 12px; color: #bbb; }
+    .empty-state { padding: 32px 20px; text-align: center; color: #bbb; font-size: 14px; }
+
+    /* Sync modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      width: 560px;
+      max-width: 95vw;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .modal p { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.6; }
+    .modal textarea {
+      width: 100%;
+      height: 180px;
+      border: 1.5px solid #dde1e9;
+      border-radius: 7px;
+      padding: 12px;
+      font-size: 13px;
+      font-family: monospace;
+      resize: vertical;
+      background: #fafafa;
+      outline: none;
+    }
+    .modal textarea:focus { border-color: #4f46e5; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+    .btn-cancel { background: #f0f0f5; color: #555; }
+    .btn-cancel:hover { background: #e4e4ef; }
+
+    .toast {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .toast.info { background: #1d4ed8; }
+
+    @media (max-width: 768px) {
+      .editor-grid { grid-template-columns: 1fr; }
+      .dropdowns { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>PLP SEO Content Manager</h1>
+    <span>Category-wise markdown blocks</span>
+  </div>
+  <button class="sync-btn" onclick="openSyncModal()">Sync Categories</button>
+</header>
+
+<div class="container">
+
+  <!-- Category Selector -->
+  <div class="selector-card">
+    <h2>Select Category</h2>
+    <div class="dropdowns">
+      <div class="dropdown-group">
+        <label>L0 — Main Category</label>
+        <select id="l0Select" onchange="onL0Change()">
+          <option value="">— Select —</option>
+        </select>
+      </div>
+      <div class="dropdown-group">
+        <label>L1 — Sub Category</label>
+        <select id="l1Select" onchange="onL1Change()" disabled>
+          <option value="">— Select L0 first —</option>
+        </select>
+      </div>
+      <div class="dropdown-group">
+        <label>L2 — Child Category</label>
+        <select id="l2Select" onchange="onL2Change()" disabled>
+          <option value="">— No L2 / Select L1 first —</option>
+        </select>
+      </div>
+    </div>
+    <div class="selected-info" id="selectedInfo" style="display:none">
+      <span id="selectedName" style="font-weight:600"></span>
+      <span class="level-pill" id="selectedLevel"></span>
+      <span class="slug-pill" id="selectedSlug"></span>
+      <span class="status-badge" id="selectedStatus"></span>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Markdown Editor</h2>
+        <span id="editorHint">Select a category above</span>
+      </div>
+      <textarea id="mdEditor" disabled placeholder="Select a category above to start editing..."></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Live Preview</h2>
+        <span>As it will appear on site</span>
+      </div>
+      <div class="preview-body" id="preview">
+        <p class="preview-placeholder">Select a category and start writing to see a preview.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <div class="left">
+      <button class="btn btn-primary" onclick="saveContent()" id="saveBtn" disabled>Save</button>
+      <button class="btn btn-delete" onclick="deleteBlock()" id="deleteBtn" style="display:none">Delete</button>
+    </div>
+    <div id="lastSaved" style="font-size:13px; color:#aaa;"></div>
+  </div>
+
+  <!-- All blocks -->
+  <div class="blocks-list">
+    <div class="blocks-list-header">
+      All SEO Blocks
+      <span id="blocksCount"></span>
+    </div>
+    <div id="blocksList"><div class="empty-state">Loading...</div></div>
+  </div>
+
+</div>
+
+<!-- Sync Modal -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal">
+    <h2>Sync Categories</h2>
+    <p>Paste the full JSON array from your categories API response below. This will upsert all L0, L1, and L2 categories into the database.</p>
+    <textarea id="syncJson" placeholder='[{"id": 4, "name": "Fashion", "childes": [...]}]'></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeSyncModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="syncCategories()">Sync Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let selectedCategoryId = null;
+  let selectedCategorySlug = null;
+  let selectedLevel = null;
+  let currentMode = 'new';
+
+  const mdEditor = document.getElementById('mdEditor');
+  const preview = document.getElementById('preview');
+  const saveBtn = document.getElementById('saveBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const selectedInfo = document.getElementById('selectedInfo');
+  const lastSaved = document.getElementById('lastSaved');
+
+  mdEditor.addEventListener('input', updatePreview);
+
+  function updatePreview() {
+    const md = mdEditor.value.trim();
+    preview.innerHTML = md
+      ? marked.parse(md)
+      : '<p class="preview-placeholder">Select a category and start writing to see a preview.</p>';
+  }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+  }
+
+  // ── Dropdowns ──────────────────────────────────────────────────────────────
+
+  async function loadL0() {
+    const res = await fetch('/api/categories/l0');
+    const data = await res.json();
+    const sel = document.getElementById('l0Select');
+    sel.innerHTML = '<option value="">— Select —</option>';
+    (data.categories || []).forEach(c => {
+      sel.innerHTML += `<option value="${c.id}" data-slug="${c.slug}" data-name="${c.name}">${c.name}</option>`;
+    });
+  }
+
+  async function onL0Change() {
+    const sel = document.getElementById('l0Select');
+    const l1Sel = document.getElementById('l1Select');
+    const l2Sel = document.getElementById('l2Select');
+
+    l1Sel.innerHTML = '<option value="">— Select —</option>';
+    l2Sel.innerHTML = '<option value="">— None —</option>';
+    l1Sel.disabled = true;
+    l2Sel.disabled = true;
+    resetEditor();
+
+    if (!sel.value) return;
+
+    const opt = sel.options[sel.selectedIndex];
+    await selectCategory(parseInt(sel.value), opt.dataset.slug, 'L0', opt.dataset.name);
+
+    const res = await fetch(`/api/categories/${sel.value}/children`);
+    const data = await res.json();
+    if (data.categories && data.categories.length) {
+      l1Sel.innerHTML = '<option value="">— Select L1 —</option>';
+      data.categories.forEach(c => {
+        l1Sel.innerHTML += `<option value="${c.id}" data-slug="${c.slug}" data-name="${c.name}">${c.name}</option>`;
+      });
+      l1Sel.disabled = false;
+    } else {
+      l1Sel.innerHTML = '<option value="">— No L1 categories —</option>';
+    }
+  }
+
+  async function onL1Change() {
+    const sel = document.getElementById('l1Select');
+    const l2Sel = document.getElementById('l2Select');
+
+    l2Sel.innerHTML = '<option value="">— None —</option>';
+    l2Sel.disabled = true;
+    resetEditor();
+
+    if (!sel.value) {
+      const l0Sel = document.getElementById('l0Select');
+      if (l0Sel.value) {
+        const opt = l0Sel.options[l0Sel.selectedIndex];
+        await selectCategory(parseInt(l0Sel.value), opt.dataset.slug, 'L0', opt.dataset.name);
+      }
+      return;
+    }
+
+    const opt = sel.options[sel.selectedIndex];
+    await selectCategory(parseInt(sel.value), opt.dataset.slug, 'L1', opt.dataset.name);
+
+    const res = await fetch(`/api/categories/${sel.value}/children`);
+    const data = await res.json();
+    if (data.categories && data.categories.length) {
+      l2Sel.innerHTML = '<option value="">— Select L2 (optional) —</option>';
+      data.categories.forEach(c => {
+        l2Sel.innerHTML += `<option value="${c.id}" data-slug="${c.slug}" data-name="${c.name}">${c.name}</option>`;
+      });
+      l2Sel.disabled = false;
+    }
+  }
+
+  async function onL2Change() {
+    const sel = document.getElementById('l2Select');
+    resetEditor();
+
+    if (!sel.value) {
+      const l1Sel = document.getElementById('l1Select');
+      if (l1Sel.value) {
+        const opt = l1Sel.options[l1Sel.selectedIndex];
+        await selectCategory(parseInt(l1Sel.value), opt.dataset.slug, 'L1', opt.dataset.name);
+      }
+      return;
+    }
+
+    const opt = sel.options[sel.selectedIndex];
+    await selectCategory(parseInt(sel.value), opt.dataset.slug, 'L2', opt.dataset.name);
+  }
+
+  async function selectCategory(id, slug, level, name) {
+    selectedCategoryId = id;
+    selectedCategorySlug = slug;
+    selectedLevel = level;
+
+    document.getElementById('selectedName').textContent = name;
+    document.getElementById('selectedLevel').textContent = level;
+    document.getElementById('selectedLevel').className = `level-pill level-${level}`;
+    document.getElementById('selectedSlug').textContent = slug;
+    selectedInfo.style.display = 'flex';
+
+    mdEditor.disabled = false;
+    saveBtn.disabled = false;
+    document.getElementById('editorHint').textContent = name;
+
+    // Check if SEO block exists
+    try {
+      const res = await fetch(`/api/plp/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        currentMode = 'exists';
+        mdEditor.value = data.markdown;
+        updatePreview();
+        lastSaved.textContent = `Last saved: ${new Date(data.updated_at).toLocaleString()}`;
+        deleteBtn.style.display = 'inline-block';
+        document.getElementById('selectedStatus').textContent = 'Has SEO';
+        document.getElementById('selectedStatus').className = 'status-badge badge-exists';
+      } else {
+        currentMode = 'new';
+        mdEditor.value = '';
+        updatePreview();
+        lastSaved.textContent = '';
+        deleteBtn.style.display = 'none';
+        document.getElementById('selectedStatus').textContent = 'No SEO yet';
+        document.getElementById('selectedStatus').className = 'status-badge badge-new';
+      }
+    } catch (e) {
+      showToast('Error loading SEO block', 'error');
+    }
+  }
+
+  function resetEditor() {
+    selectedCategoryId = null;
+    selectedCategorySlug = null;
+    mdEditor.disabled = true;
+    mdEditor.value = '';
+    saveBtn.disabled = true;
+    deleteBtn.style.display = 'none';
+    selectedInfo.style.display = 'none';
+    lastSaved.textContent = '';
+    updatePreview();
+    document.getElementById('editorHint').textContent = 'Select a category above';
+  }
+
+  // ── Save / Delete ──────────────────────────────────────────────────────────
+
+  async function saveContent() {
+    if (!selectedCategoryId) return;
+    const markdown_content = mdEditor.value.trim();
+    if (!markdown_content) { showToast('Content cannot be empty', 'error'); return; }
+
+    saveBtn.disabled = true;
+    const method = currentMode === 'exists' ? 'PATCH' : 'POST';
+    try {
+      const res = await fetch(`/api/plp/${selectedCategoryId}`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown_content }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      currentMode = 'exists';
+      deleteBtn.style.display = 'inline-block';
+      lastSaved.textContent = `Last saved: ${new Date().toLocaleString()}`;
+      document.getElementById('selectedStatus').textContent = 'Has SEO';
+      document.getElementById('selectedStatus').className = 'status-badge badge-exists';
+      showToast('Saved successfully!');
+      loadAllBlocks();
+    } catch (err) {
+      showToast('Save failed: ' + err.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  }
+
+  async function deleteBlock() {
+    if (!selectedCategoryId) return;
+    if (!confirm(`Delete SEO block for "${selectedCategorySlug}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/plp/${selectedCategoryId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      currentMode = 'new';
+      mdEditor.value = '';
+      updatePreview();
+      deleteBtn.style.display = 'none';
+      lastSaved.textContent = '';
+      document.getElementById('selectedStatus').textContent = 'No SEO yet';
+      document.getElementById('selectedStatus').className = 'status-badge badge-new';
+      showToast('Deleted');
+      loadAllBlocks();
+    } catch (err) {
+      showToast('Delete failed: ' + err.message, 'error');
+    }
+  }
+
+  // ── All blocks list ────────────────────────────────────────────────────────
+
+  async function loadAllBlocks() {
+    try {
+      const res = await fetch('/api/plp');
+      const data = await res.json();
+      const list = document.getElementById('blocksList');
+      const count = document.getElementById('blocksCount');
+      if (!data.blocks || !data.blocks.length) {
+        list.innerHTML = '<div class="empty-state">No SEO blocks added yet.</div>';
+        count.textContent = '0 blocks';
+        return;
+      }
+      count.textContent = `${data.blocks.length} block${data.blocks.length !== 1 ? 's' : ''}`;
+      list.innerHTML = data.blocks.map(b => `
+        <div class="block-item" onclick="quickLoad(${b.category_id})">
+          <div class="left">
+            <span class="level-pill level-${b.level}">${b.level}</span>
+            <div>
+              <div class="cat-name">${b.name}</div>
+              <div class="cat-slug">${b.category_slug}</div>
+            </div>
+          </div>
+          <span class="date">${new Date(b.updated_at).toLocaleDateString()}</span>
+        </div>
+      `).join('');
+    } catch (err) {
+      document.getElementById('blocksList').innerHTML = '<div class="empty-state">Could not load blocks.</div>';
+    }
+  }
+
+  async function quickLoad(categoryId) {
+    try {
+      const res = await fetch(`/api/plp/${categoryId}`);
+      const data = await res.json();
+      if (!data.ok) return;
+      showToast(`Loaded: ${data.category_name}`, 'info');
+    } catch (e) {}
+  }
+
+  // ── Sync Modal ─────────────────────────────────────────────────────────────
+
+  function openSyncModal() { document.getElementById('syncModal').classList.add('show'); }
+  function closeSyncModal() {
+    document.getElementById('syncModal').classList.remove('show');
+    document.getElementById('syncJson').value = '';
+  }
+
+  async function syncCategories() {
+    const raw = document.getElementById('syncJson').value.trim();
+    if (!raw) { showToast('Paste the JSON first', 'error'); return; }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { showToast('Invalid JSON', 'error'); return; }
+    try {
+      const res = await fetch('/api/sync-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      closeSyncModal();
+      showToast(`Synced ${data.synced} categories!`);
+      await loadL0();
+    } catch (err) {
+      showToast('Sync failed: ' + err.message, 'error');
+    }
+  }
+
+  document.getElementById('syncModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('syncModal')) closeSyncModal();
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  loadL0();
+  loadAllBlocks();
+</script>
+
+</body>
+</html>
