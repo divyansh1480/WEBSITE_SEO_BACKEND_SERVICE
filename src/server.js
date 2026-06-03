@@ -10,6 +10,15 @@ const { renderPage } = require('./pdp-preview/components/pdp-template');
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 
+// API key middleware for write operations
+function requireApiKey(req, res, next) {
+  const key = req.headers['x-api-key'];
+  if (!key || key !== process.env.API_KEY) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+  next();
+}
+
 const allowedColumns = new Set([
   'short_description',
   'long_description',
@@ -181,7 +190,7 @@ function flattenCategories(categories, level, parentId, l0Id) {
   return rows;
 }
 
-app.post('/api/sync-categories', async (req, res) => {
+app.post('/api/sync-categories', requireApiKey, async (req, res) => {
   const categories = req.body;
   if (!Array.isArray(categories) || !categories.length) {
     return res.status(400).json({ ok: false, error: 'Provide an array of categories' });
@@ -239,7 +248,7 @@ app.get('/admin/plp', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-plp.html'));
 });
 
-app.post('/api/plp/:categoryId', async (req, res) => {
+app.post('/api/plp/:categoryId', requireApiKey, async (req, res) => {
   const categoryId = parseInt(req.params.categoryId);
   const { markdown_content } = req.body;
   if (!markdown_content || !markdown_content.trim()) {
@@ -260,7 +269,7 @@ app.post('/api/plp/:categoryId', async (req, res) => {
   }
 });
 
-app.patch('/api/plp/:categoryId', async (req, res) => {
+app.patch('/api/plp/:categoryId', requireApiKey, async (req, res) => {
   const categoryId = parseInt(req.params.categoryId);
   const { markdown_content } = req.body;
   if (!markdown_content || !markdown_content.trim()) {
@@ -324,7 +333,7 @@ app.get('/api/plp/:categoryId', async (req, res) => {
   }
 });
 
-app.delete('/api/plp/:categoryId', async (req, res) => {
+app.delete('/api/plp/:categoryId', requireApiKey, async (req, res) => {
   const categoryId = parseInt(req.params.categoryId);
   try {
     const [result] = await pool.query('DELETE FROM plp_seo_blocks WHERE category_id = ?', [categoryId]);
