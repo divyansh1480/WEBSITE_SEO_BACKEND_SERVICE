@@ -162,6 +162,31 @@ app.get('/api/pdp/:productId', async (req, res) => {
   }
 });
 
+// Website-facing PDP SEO endpoint
+// Returns only SEO-relevant fields. Price & availability are intentionally
+// excluded — website must merge live values from product API before rendering.
+app.get('/api/seo/pdp/:productId', async (req, res) => {
+  const { productId } = req.params;
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+        product_id, slug, canonical_url,
+        meta_title, meta_description, meta_keywords,
+        short_description, long_description,
+        specifications, features, faqs,
+        size_guide, regulatory_info, disclaimer, box_contents,
+        schema_json, breadcrumb_jsonld, images
+       FROM pdp_seo_content WHERE product_id = ? LIMIT 1`,
+      [productId]
+    );
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'No SEO data found for this product' });
+    const data = Object.fromEntries(Object.entries(rows[0]).filter(([, v]) => v !== null));
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.delete('/api/pdp/:productId', async (req, res) => {
   const { productId } = req.params;
   try {
