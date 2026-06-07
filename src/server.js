@@ -36,6 +36,10 @@ const allowedColumns = new Set([
   'meta_keywords',
   'schema_json',
   'images',
+  'slug',
+  'canonical_url',
+  'availability',
+  'breadcrumb_jsonld',
 ]);
 
 const jsonColumns = new Set([
@@ -46,6 +50,7 @@ const jsonColumns = new Set([
   'box_contents',
   'schema_json',
   'images',
+  'breadcrumb_jsonld',
 ]);
 
 function getValidEntries(body) {
