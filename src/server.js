@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const { marked } = require('marked');
 const pool = require('./db');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const products = require('./pdp-preview/data/products');
@@ -9,6 +10,34 @@ const { renderPage } = require('./pdp-preview/components/pdp-template');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+
+const readLimiter = rateLimit({
+  windowMs: 30 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests, please try again later.' },
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests, please try again later.' },
+});
+
+const globalLimiter = rateLimit({
+  windowMs: 30 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests, please try again later.' },
+});
+
+app.use(globalLimiter);
+app.use(['GET', 'HEAD'], readLimiter);
+app.use(['POST', 'PATCH', 'DELETE'], writeLimiter);
 
 // API key middleware for write operations
 function requireApiKey(req, res, next) {
